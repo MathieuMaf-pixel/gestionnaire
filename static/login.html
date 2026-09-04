@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Connexion — Gestionnaire MAF</title>
+<link rel="icon" type="image/png" href="/static/common/logo.png"/>
+<link rel="stylesheet" href="/static/common/maf.css"/>
+<style>
+  body{align-items:center;justify-content:center;background:var(--black)}
+  .card{background:#fff;border-radius:var(--r-card);padding:34px 32px 28px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.5);border-top:4px solid var(--green)}
+  .card img{height:44px;display:block;margin:0 auto 10px}
+  .card h1{font-family:var(--title);font-size:26px;text-align:center;margin-bottom:2px}
+  .card p.sub{text-align:center;color:var(--grey);margin:0 0 20px;font-size:13px}
+  .btn.full{width:100%;justify-content:center;padding:11px;font-size:14.5px;margin-top:6px}
+  #error{color:var(--bad);font-size:13px;min-height:18px;margin-top:10px;text-align:center}
+  .hint{font-size:12px;color:var(--grey);margin-top:16px;text-align:center;line-height:1.6}
+  .hint code{font-family:var(--mono);background:var(--bg);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="/static/common/logo.png" alt="MAF RODA AGROBOTIC"/>
+  <h1>Gestionnaire</h1>
+  <p class="sub">Suivi des demandes · du CDC au plan validé</p>
+  <form onsubmit="login(event)">
+    <div class="field"><label>Utilisateur</label><input id="username" autocomplete="username" autofocus/></div>
+    <div class="field"><label>Mot de passe</label><input id="password" type="password" autocomplete="current-password"/></div>
+    <button type="submit" class="btn full">Se connecter</button>
+    <div id="error"></div>
+  </form>
+  <div class="hint">Version de test — comptes de démonstration :<br>
+    <code>com1</code> commercial · <code>impl1</code> implantation · <code>dt1</code> direction technique · <code>admin</code><br>
+    (mot de passe = identifiant)</div>
+</div>
+<script>
+async function login(e){
+  e.preventDefault();
+  document.getElementById('error').textContent = '';
+  const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username: document.getElementById('username').value.trim(), password: document.getElementById('password').value})});
+  const j = await r.json().catch(()=>({}));
+  if (r.ok) {
+    const d = new URLSearchParams(location.search).get('d');
+    location.href = j.home + (d ? '?d=' + encodeURIComponent(d) : '');
+  } else document.getElementById('error').textContent = j.error || 'Identifiants invalides';
+}
+</script>
+</body>
+</html>

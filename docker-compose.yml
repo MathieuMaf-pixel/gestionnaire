@@ -1,0 +1,20 @@
+services:
+  gestionnaire:
+    build: .
+    environment:
+      SECRET_KEY: ${SERVICE_PASSWORD_GESTSECRET}
+      APP_URL: ${APP_URL:-http://localhost:5000}
+      MAIL_MODE: ${MAIL_MODE:-file}        # file (test) | smtp (production) | off
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-25}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TLS: ${SMTP_TLS:-0}
+      SMTP_FROM: ${SMTP_FROM:-gestionnaire@maf.local}
+    volumes:
+      - gestionnaire-data:/data
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+volumes:
+  gestionnaire-data:

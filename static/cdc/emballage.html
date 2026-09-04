@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CDC Emballage — Gestionnaire MAF</title>
+<link rel="icon" type="image/png" href="/static/common/logo.png"/>
+<link rel="stylesheet" href="/static/common/maf.css"/>
+<style>
+  .wrap{max-width:920px}
+  .bandeau{background:var(--black);color:#fff;border-radius:10px;border-left:4px solid var(--green);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13.5px;margin-bottom:14px}
+  .bandeau .sub{color:#9fb18f;font-size:12px}
+  .prog{height:5px;background:#e2e7ee;border-radius:3px;overflow:hidden;margin:6px 0 14px}
+  .prog div{height:100%;background:var(--green);transition:width .25s}
+</style>
+</head>
+<body>
+<div id="hdr"><header class="app"><div class="head-in"><img class="logo" src="/static/common/logo.png" alt="MAF RODA AGROBOTIC">
+  <div class="titles"><h1>CDC Emballage</h1><p>Version provisoire (v0) — à remplacer par la page définitive</p></div></div></header></div>
+<div class="wrap">
+  <div id="bandeau" class="bandeau hidden"></div>
+  <div class="alertbar turbo mb"><span>⚠</span><div><b>Page provisoire.</b> Ce formulaire simplifié permet de tester le flux complet. La vraie page CDC Emballage (comme celle du précalibrage) viendra la remplacer : il suffira qu'elle sauvegarde son état via la même API.</div></div>
+  <div class="prog"><div id="progFill" style="width:0"></div></div>
+  <div class="panel" id="form">
+    <h3>Ligne d'emballage</h3>
+    <div class="grid2">
+      <div class="field"><label>Produits <span class="req">*</span></label><input data-k="produits"></div>
+      <div class="field"><label>Débit souhaité (T/h) <span class="req">*</span></label><input data-k="debit" type="number" step="0.1"></div>
+      <div class="field"><label>Types de colis <span class="req">*</span></label><input data-k="colis" placeholder="Plateaux, barquettes, sachets, vrac…"></div>
+      <div class="field"><label>Nombre de sorties d'emballage</label><input data-k="sorties" type="number"></div>
+      <div class="field"><label>Calibrage en amont</label><select data-k="calibrage"><option value="">—</option><option>Oui, calibreuse existante</option><option>Oui, calibreuse neuve (CDC précalibrage)</option><option>Non</option></select></div>
+      <div class="field"><label>Palettisation</label><select data-k="palettisation"><option value="">—</option><option>Manuelle</option><option>Robot</option><option>Palettiseur conventionnel</option><option>À définir</option></select></div>
+      <div class="field"><label>Étiquetage / marquage</label><input data-k="etiquetage" placeholder="Étiquette colis, étiquette fruit, marquage laser…"></div>
+      <div class="field"><label>Traçabilité</label><input data-k="traca" placeholder="Lot, GS1, …"></div>
+    </div>
+    <div class="field"><label>Contraintes du bâtiment</label><textarea data-k="batiment" placeholder="Surface, hauteur, quais, zones froides…"></textarea></div>
+    <div class="field"><label>Notes pour l'implantation</label><textarea data-k="notes"></textarea></div>
+    <div class="row" style="justify-content:space-between"><span class="muted small" id="statut">—</span>
+      <div class="row"><button class="btn grey" id="btnSave">💾 Enregistrer</button><button class="btn" id="btnFin">Terminer le CDC ✓</button></div></div>
+  </div>
+</div>
+<div id="ftr"></div>
+<script src="/static/common/api.js"></script>
+<script>
+(async () => {
+  const P = new URLSearchParams(location.search);
+  const DEMANDE = P.get('demande'), LECTURE = P.get('lecture') === '1';
+  renderFooter();
+  if (!DEMANDE) { $('#form').innerHTML = '<div class="empty">Cette page s\'ouvre depuis une demande du Gestionnaire.</div>'; return; }
+  const API = `/api/demandes/${encodeURIComponent(DEMANDE)}/cdc/emballage`;
+  const meta = await GET(API);
+  const d = meta.demande;
+  let S = Object.assign({ v: 1, f: {} }, meta.data || {});
+  if (!S.f.produits && d.produits) S.f.produits = d.produits;
+  if (!S.f.debit && d.tonnage_horaire) S.f.debit = d.tonnage_horaire;
+  const figee = d.statut !== 'brouillon' || LECTURE;
+  $('#bandeau').classList.remove('hidden');
+  $('#bandeau').innerHTML = `<div><b style="color:var(--green)">D-${String(d.numero).padStart(4,'0')}</b> · <b>${esc(d.client_nom)}</b> — ${esc(d.titre)}<div class="sub">${figee ? 'Consultation seule' : 'Sauvegarde automatique dans la demande'} · ${esc(d.commercial_nom||'')}</div></div>
+    <a class="btn sm" style="margin-left:auto" href="/?d=${encodeURIComponent(DEMANDE)}">← Retour à la demande</a>`;
+  const inputs = $$('[data-k]');
+  inputs.forEach(i => { i.value = S.f[i.dataset.k] || ''; i.disabled = figee; });
+  const REQ = ['produits', 'debit', 'colis'];
+  const complet = () => REQ.every(k => (S.f[k] || '').toString().trim() !== '');
+  function prog() { const n = inputs.filter(i => i.value.trim()).length; $('#progFill').style.width = Math.round(n / inputs.length * 100) + '%'; }
+  let timer = null;
+  async function save(manuel, fin) {
+    if (figee) return;
+    await api(API, { method: 'PUT', body: { data: S, complet: complet() } });
+    $('#statut').textContent = '● Sauvegardé ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (complet() ? ' · complet' : '');
+    if (manuel) toast('Enregistré ✓');
+    if (fin) { toast('CDC complet ✓ — retour à la demande…'); setTimeout(() => location.href = '/?d=' + encodeURIComponent(DEMANDE), 500); }
+  }
+  inputs.forEach(i => i.addEventListener('input', () => { S.f[i.dataset.k] = i.value; prog(); clearTimeout(timer); timer = setTimeout(() => save(false), 600); }));
+  prog();
+  if (figee) { $('#btnSave').classList.add('hidden'); $('#btnFin').textContent = 'Retour à la demande'; $('#btnFin').onclick = () => location.href = '/?d=' + encodeURIComponent(DEMANDE); }
+  else {
+    $('#btnSave').onclick = () => save(true);
+    $('#btnFin').onclick = () => { if (!complet()) { toast('Champs obligatoires manquants : ' + REQ.filter(k => !(S.f[k]||'').toString().trim()).join(', '), true); return; } save(false, true); };
+  }
+})();
+</script>
+</body>
+</html>
