@@ -29,6 +29,7 @@
 
   let REF = null;                 // référentiel chargé
   let PAR_FRUIT = {}, PARCLE = {}, FRUITS = [];
+  let CATS = [];                  // [{cat, label, keys[]}] — fruits / légumes
   let uid = 0;
   let rech = '';
 
@@ -160,8 +161,7 @@
     const v = etat();
     let h = '';
 
-    h += '<div class="fv-sec"><div class="fv-lbl">Fruit <span class="req">*</span></div>'
-      + '<div class="fv-ftiles">' + FRUITS.map(f => {
+    const tuile = f => {
         const lst = PAR_FRUIT[f];
         const tri = lst.slice().sort((a, b) => (a.D.typ || 0) - (b.D.typ || 0));
         const rep = tri[Math.floor(tri.length / 2)];
@@ -174,10 +174,14 @@
           + '<span class="fv-fn">' + esc(REF.fruits[f]) + '</span>'
           + '<span class="fv-fc">' + n(lst.length, 0) + ' variétés · Ø ' + n(oMin, 0) + '–' + n(oMax, 0) + ' mm</span>'
           + '</button>';
-      }).join('') + '</div></div>';
+    };
+    h += '<div class="fv-sec"><div class="fv-lbl">Produit <span class="req">*</span></div>'
+      + CATS.map(gr => (gr.label ? '<div class="fv-cat">' + esc(gr.label) + '</div>' : '')
+        + '<div class="fv-ftiles">' + gr.keys.map(tuile).join('') + '</div>').join('')
+      + '</div>';
 
     if (!v.fruit) {
-      h += '<div class="fv-info fv-bad">Choisir un fruit pour accéder aux variétés. Ce choix remplit le champ « Fruits » du cahier des charges.</div>';
+      h += '<div class="fv-info fv-bad">Choisir un produit pour accéder aux variétés. Ce choix remplit le champ « Fruits » du cahier des charges.</div>';
       hote.innerHTML = h; lierTuiles(); return;
     }
 
@@ -410,6 +414,8 @@
 .fv-il input.ko{border-color:var(--rouge);background:var(--rouge-p)}
 .fv-sil{width:100%;display:block}
 .fv-env{fill:none;stroke:var(--muted);stroke-width:.9;stroke-dasharray:3 2.4;opacity:.7}
+.fv-cat{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:10px 0 5px}
+.fv-cat:first-of-type{margin-top:2px}
 .fv-ftiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
 .fv-ftile{background:#fff;border:1px solid var(--bord);border-radius:var(--r);padding:10px 8px 9px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:3px;font:inherit;color:inherit;text-align:center}
@@ -491,6 +497,11 @@ table.fv-t input:focus{outline:none;border-color:var(--vert);box-shadow:var(--fo
     REF.v.forEach(v => { (PAR_FRUIT[v.fruit] = PAR_FRUIT[v.fruit] || []).push(v); PARCLE[v.key] = v; });
     Object.keys(PAR_FRUIT).forEach(f => PAR_FRUIT[f].sort((a, b) => a.nom.localeCompare(b.nom, 'fr')));
     FRUITS = Object.keys(REF.fruits).sort((a, b) => REF.fruits[a].localeCompare(REF.fruits[b], 'fr'));
+    const catDe = k => (REF.produits && REF.produits[k] && REF.produits[k].cat) || 'fruit';
+    const groupes = [['fruit', 'Fruits'], ['legume', 'Légumes']];
+    CATS = groupes.map(([c, label]) => ({ cat: c, label: label, keys: FRUITS.filter(k => catDe(k) === c) }))
+      .filter(g => g.keys.length);
+    if (CATS.length < 2) CATS = [{ cat: '', label: '', keys: FRUITS }];
 
     // re-rendu après tout rechargement d'état (démarrage, pont Gestionnaire, import JSON)
     const restaurerOrig = window.restaurerDom;
