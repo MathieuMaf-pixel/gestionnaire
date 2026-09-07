@@ -1,83 +1,278 @@
 <!DOCTYPE html>
+<!-- CDC EMBALLAGE — MAF RODA · architecture et design hérités du CDC Précalibrage, logique par lignes.
+     Catalogue des machines : emballage-catalogue.js · Moteur : emballage.js
+     Fonctionne seul (sauvegarde locale) ou branché au Gestionnaire (?demande=<id>). -->
 <html lang="fr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CDC Emballage — Gestionnaire MAF</title>
-<link rel="icon" type="image/png" href="/static/common/logo.png"/>
-<link rel="stylesheet" href="/static/common/maf.css"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDC EMBALLAGE — MAF RODA</title>
+<link rel="icon" type="image/png" href="/static/common/logo.png">
 <style>
-  .wrap{max-width:920px}
-  .bandeau{background:var(--black);color:#fff;border-radius:10px;border-left:4px solid var(--green);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13.5px;margin-bottom:14px}
-  .bandeau .sub{color:#9fb18f;font-size:12px}
-  .prog{height:5px;background:#e2e7ee;border-radius:3px;overflow:hidden;margin:6px 0 14px}
-  .prog div{height:100%;background:var(--green);transition:width .25s}
+/* ================= PALETTE MAF RODA (identique au CDC Précalibrage) ================= */
+:root{
+  --vert:#55AB26; --vert-f:#3f8a1a; --vert-p:#eaf6e0;
+  --orange:#F29400; --orange-p:#fdf1dc;
+  --rouge:#d43a2f; --rouge-p:#fbe9e7;
+  --bleu:#2b6cb0; --bleu-p:#e6f0fb;
+  --ink:#1c2430; --muted:#67707c; --bg:#eef1f5;
+  --carte:#ffffff; --bord:#d7dde5; --bord-f:#b9c2cd;
+  --focus:0 0 0 3px rgba(85,171,38,.25);
+  --r:10px; --rs:7px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+
+/* ================= BARRE DE PROGRESSION ================= */
+#progWrap{position:fixed;top:0;left:0;right:0;z-index:60;background:#fff;border-bottom:1px solid var(--bord);box-shadow:0 1px 6px rgba(15,25,40,.06)}
+#progTrack{height:5px;background:#e2e7ee}
+#progFill{height:100%;width:0%;background:var(--vert);transition:width .25s}
+#progTxt{display:flex;justify-content:space-between;gap:12px;padding:5px 16px;font-size:12.5px;color:var(--muted)}
+#progTxt b{color:var(--ink)}
+#progTxt .ok{color:var(--vert-f);font-weight:600}
+
+/* ================= EN-TÊTE ================= */
+#hdr{max-width:1040px;margin:66px auto 0;padding:20px 20px 0}
+.hdr-carte{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r);padding:22px 26px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.hdr-carte img{height:52px}
+.hdr-titres h1{margin:0;font-size:26px;letter-spacing:.06em}
+.hdr-titres p{margin:3px 0 0;color:var(--muted);font-size:13.5px}
+#toolbar{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.tb-btn{border:1px solid var(--bord-f);background:#fff;border-radius:var(--rs);padding:7px 12px;font-size:13px;cursor:pointer;color:var(--ink);display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.tb-btn:hover{border-color:var(--vert);color:var(--vert-f)}
+.tb-btn.pdf{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
+.tb-btn.pdf:hover{background:#d98500;color:#fff}
+.tb-btn.raz:hover{border-color:var(--rouge);color:var(--rouge)}
+#bandeauDemande{max-width:1040px;margin:14px auto 0;padding:0 20px}
+#bandeauDemande .bd{background:#0e100e;color:#fff;border-radius:10px;border-left:4px solid var(--vert);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:13.5px}
+#bandeauDemande .bd .sub{color:#9fb18f;font-size:12px}
+#bandeauDemande a{margin-left:auto;background:var(--vert);color:#fff;text-decoration:none;padding:7px 12px;border-radius:7px;font-weight:600;font-size:13px}
+
+/* ================= ONGLETS ================= */
+#tabs{max-width:1040px;margin:14px auto 0;padding:0 20px;display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:32px;z-index:50}
+.tab{border:1px solid var(--bord);background:#f7f9fb;border-radius:20px;padding:7px 15px;font-size:13.5px;cursor:pointer;color:var(--muted);transition:.15s;font-family:inherit}
+.tab:hover{border-color:var(--vert);color:var(--vert-f)}
+.tab.actif{background:var(--vert);border-color:var(--vert);color:#fff;font-weight:600}
+.tab.complet:not(.actif){border-color:var(--vert);color:var(--vert-f)}
+.tab.complet::after{content:" ✓";font-weight:700}
+.tab.erreur:not(.actif){border-color:var(--rouge);color:var(--rouge)}
+
+/* ================= PAGES / CARTES ================= */
+#appli{max-width:1040px;margin:0 auto;padding:14px 20px 80px}
+.page{background:var(--carte);border:1px solid var(--bord);border-radius:var(--r);padding:26px 28px 22px}
+.page>h2{margin:0 0 4px;font-size:21px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);padding-bottom:8px;border-bottom:3px solid var(--vert);display:inline-block}
+.page>.intro{color:var(--muted);font-size:13.5px;margin:6px 0 20px}
+.sect{border:1px solid var(--bord);border-radius:var(--r);padding:16px 18px 10px;margin:0 0 16px;background:#fbfcfe;position:relative}
+.sect>h3{margin:0 0 4px;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sect>h3 .num{background:var(--vert);color:#fff;border-radius:6px;font-size:12px;padding:2px 8px;font-weight:700;letter-spacing:.04em}
+.sect>h3 .tag{font-size:11.5px;color:var(--muted);font-weight:500;background:#eef1f5;border-radius:12px;padding:2px 9px}
+.sect>.gs-sous{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.sect.off{background:#f6f7f9;border-style:dashed}
+.sect.off .rang,.sect.off .grille{display:none}
+.sect.mach{border-left:4px solid var(--vert)}
+.sect.acc{border-left:4px solid var(--orange);background:#fffdf8;margin-left:22px}
+.sect.grp{border-left:4px solid var(--bleu)}
+.sect-x{position:absolute;top:10px;right:10px;border:1px solid var(--bord-f);background:#fff;color:var(--rouge);border-radius:6px;width:28px;height:28px;cursor:pointer;font-weight:700;line-height:1;font-size:16px}
+.sect-x:hover{background:var(--rouge);color:#fff;border-color:var(--rouge)}
+.sect-move{position:absolute;top:10px;right:44px;display:flex;gap:4px}
+.sect-move button{border:1px solid var(--bord-f);background:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer;color:var(--muted);font-size:13px}
+.sect-move button:hover{border-color:var(--vert);color:var(--vert-f)}
+.interrupteur{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:14px;font-weight:600;cursor:pointer;user-select:none}
+.interrupteur input{width:18px;height:18px;accent-color:var(--vert);cursor:pointer}
+
+/* ================= CHAMPS ================= */
+.rang{margin:0 0 14px;padding:2px 0}
+.rang.erreur .etq{color:var(--rouge)}
+.rang.erreur input,.rang.erreur textarea,.rang.erreur select{border-color:var(--rouge);background:var(--rouge-p)}
+.etq{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
+.etq .req{color:var(--rouge);margin-left:2px}
+.sous-etq{font-size:12px;color:var(--muted);margin-top:3px}
+.msg-err{display:none;color:var(--rouge);font-size:12.5px;margin-top:4px}
+.rang.erreur .msg-err{display:block}
+input[type=text],input[type=email],input[type=number],input[type=date],textarea,select{
+  width:100%;max-width:420px;border:1px solid var(--bord-f);border-radius:var(--rs);padding:8px 11px;font:inherit;color:var(--ink);background:#fff;outline:none;transition:border .12s, box-shadow .12s}
+textarea{max-width:760px;min-height:64px;resize:vertical}
+textarea.notes{min-height:74px;background:#fffdf5;border-color:#e8dcc0}
+input:focus,textarea:focus,select:focus{border-color:var(--vert);box-shadow:var(--focus)}
+input.court{max-width:180px}
+input.mini{max-width:110px}
+select{max-width:420px;cursor:pointer}
+input:disabled,select:disabled,textarea:disabled,button:disabled{opacity:.75}
+.grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 16px;margin-bottom:8px}
+.grille .rang{margin:0}
+.grille input,.grille select{max-width:none}
+.ligne-multi{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.ligne-multi>span{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+
+/* choix radio / cases */
+.choix{display:flex;flex-direction:column;gap:6px;max-width:760px}
+.choix.inline{flex-direction:row;flex-wrap:wrap;gap:6px 16px}
+.opt{display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.opt:hover{background:#f4f8f0}
+.opt input{margin-top:3px;accent-color:var(--vert);width:16px;height:16px;flex:none;cursor:pointer}
+.opt span{user-select:none}
+.autre-txt{margin:4px 0 0 30px;max-width:380px}
+
+/* gros boutons de choix (mode projet, mode vidage…) */
+.btn-choix{display:flex;gap:12px;flex-wrap:wrap}
+.b-choix{border:2px solid var(--bord-f);background:#fff;border-radius:var(--r);padding:14px 18px;font-size:14.5px;font-weight:600;cursor:pointer;color:var(--ink);min-width:200px;flex:1;text-align:left;transition:.15s;font-family:inherit}
+.b-choix small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:4px}
+.b-choix:hover{border-color:var(--vert)}
+.b-choix.actif{background:var(--vert);border-color:var(--vert);color:#fff;box-shadow:0 2px 8px rgba(85,171,38,.35)}
+.b-choix.actif small{color:#eaf6e0}
+
+/* puces (lignes / palox / formats affectés) */
+.puces{display:flex;gap:8px;flex-wrap:wrap}
+.puce{border:1px solid var(--bord-f);background:#fff;border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.puce:hover{border-color:var(--vert)}
+.puce.on{background:var(--vert-p);border-color:var(--vert);color:var(--vert-f);font-weight:600}
+.puce.on::before{content:"✓"}
+.puce.vide{border-style:dashed;color:var(--muted);cursor:default}
+
+/* boutons d'ajout */
+.b-ajout{margin-top:6px;border:1px dashed var(--vert);background:var(--vert-p);color:var(--vert-f);border-radius:var(--rs);padding:9px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13.5px}
+.b-ajout:hover{background:var(--vert);color:#fff}
+.b-ajout.orange{border-color:var(--orange);background:var(--orange-p);color:#b86f00}
+.b-ajout.orange:hover{background:var(--orange);color:#fff}
+.ajout-machine{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.ajout-machine select{max-width:360px}
+
+/* sous-onglets des lignes */
+.sous-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 16px}
+.sous-tab{border:1px solid var(--bord);background:#fff;border-radius:var(--rs);padding:8px 14px;font-size:13.5px;cursor:pointer;color:var(--muted);font-family:inherit;font-weight:600}
+.sous-tab.actif{background:var(--ink);border-color:var(--ink);color:#fff}
+.sous-tab.erreur:not(.actif){border-color:var(--rouge);color:var(--rouge)}
+
+/* tableaux catalogue */
+table.cat{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid var(--bord);border-radius:var(--rs);overflow:hidden}
+table.cat th{background:#f2f5f9;font-size:12px;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--bord);text-align:left;font-weight:600}
+table.cat td{padding:6px 8px;border-bottom:1px solid #eef1f5;vertical-align:middle}
+table.cat tr:last-child td{border-bottom:none}
+table.cat .vide{color:var(--muted);font-style:italic}
+
+/* résumé / alertes */
+.info{background:var(--bleu-p);border-left:4px solid var(--bleu);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;font-size:13.5px;margin:0 0 16px}
+.warn{background:var(--orange-p);border-left:4px solid var(--orange);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;font-size:13.5px;margin:0 0 16px}
+.bad{background:var(--rouge-p);border-left:4px solid var(--rouge);border-radius:0 var(--rs) var(--rs) 0;padding:10px 14px;font-size:13.5px;margin:0 0 16px}
+.compteur{display:inline-block;background:#eef1f5;border-radius:12px;padding:2px 10px;font-size:12px;color:var(--muted);margin-left:6px}
+
+/* ================= SCHÉMA ================= */
+#schemaWrap{overflow:auto;border:1px solid var(--bord);border-radius:var(--r);background:#fff;padding:10px}
+#schemaWrap svg{display:block;font-family:"Segoe UI",system-ui,sans-serif}
+.legende{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:10px}
+.legende span::before{content:"";display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legende .l-vid::before{background:#dbeafe;border:1px solid #2b6cb0}
+.legende .l-tete::before{background:#eef1f5;border:1px solid #8a94a1}
+.legende .l-mach::before{background:#eaf6e0;border:1px solid #55AB26}
+.legende .l-acc::before{background:#fdf1dc;border:1px solid #F29400}
+.legende .l-pal::before{background:#f3e8ff;border:1px solid #7c3aed}
+
+/* ================= FICHIERS ================= */
+.zone-dep{border:2px dashed var(--bord-f);border-radius:var(--r);padding:20px;text-align:center;color:var(--muted);cursor:pointer;max-width:640px;transition:.15s}
+.zone-dep:hover{border-color:var(--vert);background:var(--vert-p);color:var(--vert-f)}
+#lstFichiers{list-style:none;margin:10px 0 0;padding:0;max-width:640px}
+#lstFichiers li{display:flex;align-items:center;gap:10px;background:#f6f8fb;border:1px solid var(--bord);border-radius:var(--rs);padding:7px 10px;margin-bottom:6px;font-size:13.5px}
+#lstFichiers .fx{margin-left:auto;border:none;background:none;color:var(--rouge);cursor:pointer;font-weight:700;font-size:15px}
+
+/* ================= NAVIGATION BAS DE PAGE ================= */
+.nav-page{display:flex;gap:10px;margin-top:26px;padding-top:16px;border-top:1px solid var(--bord);align-items:center;flex-wrap:wrap}
+.b-nav{border:1px solid var(--bord-f);background:#fff;border-radius:var(--rs);padding:10px 20px;font-size:14px;cursor:pointer;color:var(--ink);font-family:inherit}
+.b-nav:hover{border-color:var(--vert);color:var(--vert-f)}
+.b-nav.suiv{background:var(--vert);border-color:var(--vert);color:#fff;font-weight:600;margin-left:auto}
+.b-nav.suiv:hover{background:var(--vert-f)}
+.b-nav.env{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:700;margin-left:auto;padding:11px 26px}
+.b-nav.env:hover{background:#d98500}
+
+/* toast + statut */
+#toast{position:fixed;bottom:18px;right:18px;background:var(--ink);color:#fff;border-radius:var(--rs);padding:11px 18px;font-size:13.5px;opacity:0;transform:translateY(8px);transition:.25s;z-index:99;pointer-events:none;max-width:min(560px,90vw)}
+#toast.visible{opacity:1;transform:none}
+#toast.err{background:var(--rouge)}
+#statutSauve{position:fixed;bottom:18px;left:18px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.92);border:1px solid var(--bord);border-radius:20px;padding:5px 12px;z-index:40}
+#statutSauve b{color:var(--vert-f)}
+#bandoErr{display:none;background:var(--rouge-p);border:1px solid var(--rouge);color:var(--rouge);border-radius:var(--rs);padding:10px 14px;margin:0 0 16px;font-size:13.5px}
+#bandoErr.visible{display:block}
+#bandoErr u{cursor:pointer}
+
+@media (max-width:640px){
+  .page{padding:18px 16px}
+  #hdr{padding:14px 12px 0}
+  #appli{padding:10px 12px 50px}
+  .hdr-carte{padding:16px}
+  #toolbar{margin-left:0}
+}
+
+/* ================= IMPRESSION (PDF) ================= */
+#recapPdf{display:none}
+@media print{
+  @page{size:A4;margin:14mm 13mm}
+  body{background:#fff}
+  #progWrap,#hdr,#tabs,#appli,#toast,#statutSauve,#bandeauDemande{display:none !important}
+  #recapPdf{display:block;font-size:11.5px;color:#111}
+  #recapPdf .r-tete{display:flex;align-items:center;gap:16px;border-bottom:3px solid #55AB26;padding-bottom:8px;margin-bottom:6px}
+  #recapPdf .r-tete img{height:38px}
+  #recapPdf .r-tete h1{font-size:19px;margin:0;letter-spacing:.06em}
+  #recapPdf .r-tete .r-ss{font-size:10px;color:#555;margin:2px 0 0}
+  #recapPdf .r-meta{margin-left:auto;text-align:right;font-size:10px;color:#444}
+  #recapPdf .r-info{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 16px;border:1px solid #ccc;border-radius:5px;padding:7px 10px;margin:8px 0 12px;background:#f7f9f5}
+  #recapPdf .r-info div{font-size:10.5px}
+  #recapPdf h2{font-size:13.5px;letter-spacing:.08em;border-bottom:2px solid #55AB26;padding-bottom:2px;margin:14px 0 6px;page-break-after:avoid}
+  #recapPdf h3{font-size:12px;margin:10px 0 4px;color:#3f8a1a;page-break-after:avoid}
+  #recapPdf .r-q{display:flex;gap:8px;padding:2.5px 0;border-bottom:1px dotted #ddd;page-break-inside:avoid}
+  #recapPdf .r-q .q{flex:0 0 38%;color:#333;font-weight:600}
+  #recapPdf .r-q .a{flex:1;white-space:pre-wrap}
+  #recapPdf .r-q .a.vide{color:#999;font-style:italic}
+  #recapPdf table{width:100%;border-collapse:collapse;margin:4px 0;page-break-inside:avoid}
+  #recapPdf th,#recapPdf td{border:1px solid #bbb;padding:3px 5px;font-size:10px;text-align:center}
+  #recapPdf th{background:#eaf3e2}
+  #recapPdf .r-note{background:#f6f8fb;border-left:3px solid #F29400;padding:4px 8px;margin:4px 0;white-space:pre-wrap;page-break-inside:avoid}
+  #recapPdf .r-schema{margin:8px 0;page-break-inside:avoid}
+  #recapPdf .r-schema svg{max-width:100%;height:auto}
+  #recapPdf .r-pied{margin-top:16px;border-top:1px solid #999;padding-top:6px;font-size:9.5px;color:#666;display:flex;justify-content:space-between}
+  #recapPdf .r-propriete{margin-top:10px;border:1px solid #000;padding:6px 10px;font-size:9.5px;text-align:justify}
+}
 </style>
 </head>
 <body>
-<div id="hdr"><header class="app"><div class="head-in"><img class="logo" src="/static/common/logo.png" alt="MAF RODA AGROBOTIC">
-  <div class="titles"><h1>CDC Emballage</h1><p>Version provisoire (v0) — à remplacer par la page définitive</p></div></div></header></div>
-<div class="wrap">
-  <div id="bandeau" class="bandeau hidden"></div>
-  <div class="alertbar turbo mb"><span>⚠</span><div><b>Page provisoire.</b> Ce formulaire simplifié permet de tester le flux complet. La vraie page CDC Emballage (comme celle du précalibrage) viendra la remplacer : il suffira qu'elle sauvegarde son état via la même API.</div></div>
-  <div class="prog"><div id="progFill" style="width:0"></div></div>
-  <div class="panel" id="form">
-    <h3>Ligne d'emballage</h3>
-    <div class="grid2">
-      <div class="field"><label>Produits <span class="req">*</span></label><input data-k="produits"></div>
-      <div class="field"><label>Débit souhaité (T/h) <span class="req">*</span></label><input data-k="debit" type="number" step="0.1"></div>
-      <div class="field"><label>Types de colis <span class="req">*</span></label><input data-k="colis" placeholder="Plateaux, barquettes, sachets, vrac…"></div>
-      <div class="field"><label>Nombre de sorties d'emballage</label><input data-k="sorties" type="number"></div>
-      <div class="field"><label>Calibrage en amont</label><select data-k="calibrage"><option value="">—</option><option>Oui, calibreuse existante</option><option>Oui, calibreuse neuve (CDC précalibrage)</option><option>Non</option></select></div>
-      <div class="field"><label>Palettisation</label><select data-k="palettisation"><option value="">—</option><option>Manuelle</option><option>Robot</option><option>Palettiseur conventionnel</option><option>À définir</option></select></div>
-      <div class="field"><label>Étiquetage / marquage</label><input data-k="etiquetage" placeholder="Étiquette colis, étiquette fruit, marquage laser…"></div>
-      <div class="field"><label>Traçabilité</label><input data-k="traca" placeholder="Lot, GS1, …"></div>
-    </div>
-    <div class="field"><label>Contraintes du bâtiment</label><textarea data-k="batiment" placeholder="Surface, hauteur, quais, zones froides…"></textarea></div>
-    <div class="field"><label>Notes pour l'implantation</label><textarea data-k="notes"></textarea></div>
-    <div class="row" style="justify-content:space-between"><span class="muted small" id="statut">—</span>
-      <div class="row"><button class="btn grey" id="btnSave">💾 Enregistrer</button><button class="btn" id="btnFin">Terminer le CDC ✓</button></div></div>
+
+<div id="progWrap">
+  <div id="progTrack"><div id="progFill"></div></div>
+  <div id="progTxt">
+    <span>Avancement : <b id="pctChamps">0%</b></span>
+    <span id="txtReq">Points obligatoires : <b id="cptReq">0/0</b></span>
   </div>
 </div>
-<div id="ftr"></div>
-<script src="/static/common/api.js"></script>
-<script>
-(async () => {
-  const P = new URLSearchParams(location.search);
-  const DEMANDE = P.get('demande'), LECTURE = P.get('lecture') === '1';
-  renderFooter();
-  if (!DEMANDE) { $('#form').innerHTML = '<div class="empty">Cette page s\'ouvre depuis une demande du Gestionnaire.</div>'; return; }
-  const API = `/api/demandes/${encodeURIComponent(DEMANDE)}/cdc/emballage`;
-  const meta = await GET(API);
-  const d = meta.demande;
-  let S = Object.assign({ v: 1, f: {} }, meta.data || {});
-  if (!S.f.produits && d.produits) S.f.produits = d.produits;
-  if (!S.f.debit && d.tonnage_horaire) S.f.debit = d.tonnage_horaire;
-  const figee = d.statut !== 'brouillon' || LECTURE;
-  $('#bandeau').classList.remove('hidden');
-  $('#bandeau').innerHTML = `<div><b style="color:var(--green)">D-${String(d.numero).padStart(4,'0')}</b> · <b>${esc(d.client_nom)}</b> — ${esc(d.titre)}<div class="sub">${figee ? 'Consultation seule' : 'Sauvegarde automatique dans la demande'} · ${esc(d.commercial_nom||'')}</div></div>
-    <a class="btn sm" style="margin-left:auto" href="/?d=${encodeURIComponent(DEMANDE)}">← Retour à la demande</a>`;
-  const inputs = $$('[data-k]');
-  inputs.forEach(i => { i.value = S.f[i.dataset.k] || ''; i.disabled = figee; });
-  const REQ = ['produits', 'debit', 'colis'];
-  const complet = () => REQ.every(k => (S.f[k] || '').toString().trim() !== '');
-  function prog() { const n = inputs.filter(i => i.value.trim()).length; $('#progFill').style.width = Math.round(n / inputs.length * 100) + '%'; }
-  let timer = null;
-  async function save(manuel, fin) {
-    if (figee) return;
-    await api(API, { method: 'PUT', body: { data: S, complet: complet() } });
-    $('#statut').textContent = '● Sauvegardé ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (complet() ? ' · complet' : '');
-    if (manuel) toast('Enregistré ✓');
-    if (fin) { toast('CDC complet ✓ — retour à la demande…'); setTimeout(() => location.href = '/?d=' + encodeURIComponent(DEMANDE), 500); }
-  }
-  inputs.forEach(i => i.addEventListener('input', () => { S.f[i.dataset.k] = i.value; prog(); clearTimeout(timer); timer = setTimeout(() => save(false), 600); }));
-  prog();
-  if (figee) { $('#btnSave').classList.add('hidden'); $('#btnFin').textContent = 'Retour à la demande'; $('#btnFin').onclick = () => location.href = '/?d=' + encodeURIComponent(DEMANDE); }
-  else {
-    $('#btnSave').onclick = () => save(true);
-    $('#btnFin').onclick = () => { if (!complet()) { toast('Champs obligatoires manquants : ' + REQ.filter(k => !(S.f[k]||'').toString().trim()).join(', '), true); return; } save(false, true); };
-  }
-})();
-</script>
+
+<div id="hdr">
+  <div class="hdr-carte">
+    <img id="logoMaf" alt="MAF RODA" src="/static/common/logo.png">
+    <div class="hdr-titres">
+      <h1>EMBALLAGE</h1>
+      <p>CDC des lignes d'emballage — neuf, ligne unique ou modification d'existant</p>
+    </div>
+    <div id="toolbar">
+      <button class="tb-btn" id="btnSauveHaut" title="Ctrl+S">💾 Enregistrer</button>
+      <button class="tb-btn" id="btnExport">⇩ Export JSON</button>
+      <button class="tb-btn" id="btnImport">⇧ Import JSON</button>
+      <input type="file" id="inpImport" accept=".json" style="display:none">
+      <button class="tb-btn pdf" id="btnPdf">🖨 Générer le PDF</button>
+      <button class="tb-btn raz" id="btnRaz">RAZ</button>
+    </div>
+  </div>
+</div>
+
+<div id="bandeauDemande" style="display:none"></div>
+<div id="tabs"></div>
+<div id="appli">
+  <div id="bandoErr"></div>
+  <div id="pageCour"></div>
+</div>
+
+<div id="toast"></div>
+<div id="statutSauve">Aucune sauvegarde</div>
+<div id="recapPdf"></div>
+
+<script src="/cdc/emballage-catalogue.js"></script>
+<script src="/cdc/emballage.js"></script>
 </body>
 </html>

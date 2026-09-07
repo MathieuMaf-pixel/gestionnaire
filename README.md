@@ -48,7 +48,7 @@ Gestionnaire/
     ├── direction/       index.html + app.js    │  ne parle au serveur que par /api/…
     ├── admin/           index.html + app.js   ─┘
     └── cdc/             precalibrage.html (page CDC d'origine, inchangée) + bridge.js (pont API)
-                         emballage.html (provisoire, à remplacer par la vraie page)
+                         emballage.html + emballage.js + emballage-catalogue.js (CDC Emballage par lignes)
 ```
 
 Règle simple : chacun travaille dans **son** dossier d'interface et livre le dossier entier ;
@@ -69,6 +69,24 @@ copier le fichier dans `static/cdc/<type>.html` et ajouter avant `</body>` :
 et transforme « Envoyer le CDC » en « Terminer le CDC » (retour sur la fiche).
 Le type est déduit du nom de fichier (`precalibrage.html` → `precalibrage`) et doit exister
 dans `CDC_TYPES` (server.py).
+
+## CDC Emballage — logique par lignes
+
+`static/cdc/emballage.html` reprend le design du CDC Précalibrage mais construit le projet :
+
+- **Projet** : emballage neuf multi-lignes · ligne unique · modification de lignes existantes.
+- **Palox & formats** : deux catalogues (fiche palox identique au préca ; fiche format = nom, type, L×l×h,
+  poids net, colis/couche, couches, intercalaires, demi-palette, palettes utilisées, cornières, liens).
+- **Vidage** (multi-lignes) : indépendant / mutualisé / mixte ; chaque groupe = type (DIR2, DIR3, Robobin,
+  immersion…), lignes alimentées, **palox obligatoires**.
+- **Lignes** : tête de ligne (cuve, élévateur, brosseuse, répartition), machines de conditionnement dans
+  l'ordre du flux avec leurs accessoires, **formats de colis obligatoires**, notes partout.
+- **Palettisation** : même logique de groupes que le vidage (palettiseur ± liaison cercleuse, roulades).
+- **Schéma** : généré automatiquement (SVG), les ressources partagées enjambent les lignes ; inclus au PDF.
+
+Le catalogue des machines / accessoires / vidages / palettisations est dans **`emballage-catalogue.js`** :
+c'est le seul fichier à modifier pour enrichir les listes (ne jamais changer une clé `k` déjà utilisée).
+Test automatisé : `tests/test_cdc_emballage.py`.
 
 ## API (résumé)
 
@@ -98,6 +116,9 @@ GET  /api/users  POST /api/users  PUT /api/users/<u>   (admin)      GET /api/mai
 - Authentification : comptes locaux pour le test ; à raccorder au SSO d'entreprise en production.
 
 ## Historique
+
+- **v0.2** (07/09/2026) — CDC Emballage refait (logique par lignes, catalogues, vidage/palettisation
+  mutualisables, schéma automatique, récap PDF) ; run-dev.bat, auto-pull.bat, GUIDE-GIT.md.
 
 - **v0.1** (04/09/2026) — première version bout en bout : 4 interfaces, machine à états,
   notifications + boîte mail factice, intégration de la page CDC Précalibrage, page CDC
