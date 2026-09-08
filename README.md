@@ -24,19 +24,28 @@ brouillon → envoyee → en_implantation → a_valider → validee → chiffree
 2. Double-cliquer **`run.bat`** (Windows) ou `./run.sh` (Linux/macOS).
 3. Ouvrir <http://localhost:5000> — depuis un autre PC du réseau : `http://<IP-du-PC>:5000`.
 
-Comptes de démonstration créés au premier lancement (mot de passe = identifiant) :
-`admin` · `com1` · `com2` · `impl1` · `dt1`. Clients fictifs « CLIENT A/B/C ».
+Au premier lancement (base vide), le serveur charge le **jeu de démonstration** (`demo.py`) :
+il est déterministe, donc **identique sur tous les PC** — vous partez tous de la même base.
+Comptes (mot de passe = identifiant) : `admin` · `com1` · `com2` · `impl1` · `impl2` · `dt1`.
+10 clients fictifs, 42 demandes réparties sur 2023-2026 à tous les statuts ; `com1` en voit une
+trentaine, dont 14 pour « CLIENT A » étalées sur 4 ans (pour travailler l'arborescence par année).
+
+- **Remettre la base de test à zéro** : arrêter le serveur, double-cliquer `reset-demo.bat`.
+- **Partager un état précis** (ex. après une séance de test à deux) : `python demo.py export data/export.json`,
+  envoyer le fichier, et sur l'autre PC (serveur arrêté) `python demo.py import data/export.json`.
+- Base vraiment vide (seul compte admin) : lancer avec `DEMO=0`.
+- Rappel : la base (`data/`) n'est **pas** dans Git, volontairement. Pour tester le flux à deux en simultané,
+  un seul serveur tourne et l'autre s'y connecte via `http://<IP>:5000`.
 
 Les mails **ne sont pas envoyés** en test (`MAIL_MODE=file`) : ils sont écrits dans
 `data/mails/` et visibles dans l'onglet « Boîte mail (test) » (implantation, admin).
-
-Pour repartir de zéro : arrêter le serveur, supprimer `data/gestionnaire.db` (et `data/mails/`).
 
 ## Organisation du dossier (travail à deux)
 
 ```
 Gestionnaire/
 ├── server.py            noyau : API, rôles, machine à états, notifications   ← une seule personne
+├── demo.py              jeu de démonstration déterministe · export/import de la base (reset-demo.bat)
 ├── db.py                schéma SQLite + accès base                            ← une seule personne
 ├── requirements.txt · run.bat · run.sh · Dockerfile · docker-compose.yml
 ├── data/                base gestionnaire.db, clé de session, mails/ (ne pas partager)
@@ -116,6 +125,9 @@ GET  /api/users  POST /api/users  PUT /api/users/<u>   (admin)      GET /api/mai
 - Authentification : comptes locaux pour le test ; à raccorder au SSO d'entreprise en production.
 
 ## Historique
+
+- **v0.3** (07/09/2026) — jeu de démonstration déterministe commun (demo.py, reset-demo.bat, export/import),
+  compte impl2.
 
 - **v0.2** (07/09/2026) — CDC Emballage refait (logique par lignes, catalogues, vidage/palettisation
   mutualisables, schéma automatique, récap PDF) ; run-dev.bat, auto-pull.bat, GUIDE-GIT.md.

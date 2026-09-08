@@ -54,7 +54,7 @@ async def main():
         # ---- Implantation
         impl = await login(br, 'impl1')
         await impl.screenshot(path='tests/captures/s6_impl_atraiter.png', full_page=True)
-        await impl.click('table.grid tbody tr'); await impl.wait_for_selector('#aPrendre'); await impl.click('#aPrendre'); await impl.wait_for_timeout(700)
+        await impl.goto(B+'/?d='+did); await impl.wait_for_selector('#aPrendre'); await impl.click('#aPrendre'); await impl.wait_for_timeout(700)
         await impl.click('#aPlan'); await impl.wait_for_selector('#pFic'); await impl.fill('#pFic', 'CLIENTA_precal_indA.dwg'); await impl.fill('#pComm', 'Première implantation'); await impl.click('#mOk'); await impl.wait_for_timeout(700)
         await impl.screenshot(path='tests/captures/s7_impl_fiche.png', full_page=True)
         await impl.click('#aValid'); await impl.wait_for_selector('#vComm'); await impl.click('#mOk'); await impl.wait_for_timeout(800)
@@ -62,7 +62,7 @@ async def main():
         # ---- DT refuse puis valide B
         dt = await login(br, 'dt1')
         await dt.screenshot(path='tests/captures/s8_dt_avalider.png', full_page=True)
-        await dt.click('table.grid tbody tr'); await dt.wait_for_selector('#aRefus'); await dt.click('#aRefus'); await dt.wait_for_selector('#rNote')
+        await dt.goto(B+'/?d='+did); await dt.wait_for_selector('#aRefus'); await dt.click('#aRefus'); await dt.wait_for_selector('#rNote')
         await dt.click('#mOk'); await dt.wait_for_timeout(500)  # sans motif → doit rester ouvert
         assert await dt.query_selector('#modal'), 'modale doit rester ouverte sans motif'
         await dt.fill('#rNote', 'Manque la zone de stockage des palox vides'); await dt.click('#mOk'); await dt.wait_for_timeout(800)
@@ -80,7 +80,7 @@ async def main():
         await com.goto(B+'/commercial/'); await com.wait_for_selector('.kpis'); await com.wait_for_timeout(600)
         n = await com.inner_text('#bellN'); print('Notifs non lues commercial:', n); assert int(n) >= 2
         await com.click('#bell'); await com.wait_for_selector('#notifs'); await com.screenshot(path='tests/captures/s11_com_notifs.png')
-        await com.click('#notifs .it[data-id]'); await com.wait_for_selector('#aDevis'); await com.click('#aDevis'); await com.wait_for_selector('#dvNum'); await com.fill('#dvNum', 'DV-2026-0042'); await com.click('#mOk'); await com.wait_for_timeout(800)
+        await com.click(f'#notifs .it[data-d="{did}"]'); await com.wait_for_selector('#aDevis'); await com.click('#aDevis'); await com.wait_for_selector('#dvNum'); await com.fill('#dvNum', 'DV-2026-0042'); await com.click('#mOk'); await com.wait_for_timeout(800)
         await com.screenshot(path='tests/captures/s12_com_fiche_validee.png', full_page=True)
         assert 'Chiffrée' in await com.inner_text('#app'); print('✅ Commercial : chiffrage déclaré')
         # CDC en lecture côté DT

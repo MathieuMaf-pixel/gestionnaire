@@ -810,32 +810,24 @@ def cdc_files(path):
     return send_from_directory(os.path.join(STATIC, 'cdc'), path)
 
 
-# ─── Données de démarrage (comptes & clients fictifs) ────────────────
+# ─── Données de démarrage ────────────────────────────────────────────
 def seed():
+    """Base vide → jeu de démonstration déterministe (demo.py), identique sur tous les PC.
+    DEMO=0 dans l'environnement → seulement le compte admin/admin."""
     db = D.get_db()
     if D.q1(db, "SELECT 1 FROM users LIMIT 1"):
         db.close()
         return
-    ts = D.now_iso()
-    users = [
-        ('admin',   'admin',   'Administrateur',        'admin', 'admin@exemple.local'),
-        ('com1',    'com1',    'Commercial Test 1',     'com',   'com1@exemple.local'),
-        ('com2',    'com2',    'Commercial Test 2',     'com',   'com2@exemple.local'),
-        ('impl1',   'impl1',   'Implantation Test',     'impl',  'impl1@exemple.local'),
-        ('dt1',     'dt1',     'Directeur Technique',   'dt',    'dt1@exemple.local'),
-    ]
-    for un, pw, name, role, mail in users:
-        db.execute("INSERT INTO users VALUES (?,?,?,?,?,1,?)", (un, generate_password_hash(pw), name, role, mail, ts))
-    clients = [
-        ('CLIENT A (fictif)', 'France', 'Ville A', 'com1'),
-        ('CLIENT B (fictif)', 'Espagne', 'Ville B', 'com1'),
-        ('CLIENT C (fictif)', 'Italie', 'Ville C', 'com2'),
-    ]
-    for nom, pays, ville, com in clients:
-        db.execute("INSERT INTO clients VALUES (?,?,?,?,?,'','',?)", (D.new_id('cl'), nom, pays, ville, com, ts))
-    db.commit()
+    if os.environ.get('DEMO', '1') != '0':
+        import demo
+        demo.generer(db)
+        print('[init] Jeu de demonstration charge — comptes : admin, com1, com2, impl1, impl2, dt1 (mot de passe = identifiant)')
+    else:
+        db.execute("INSERT INTO users VALUES (?,?,?,?,?,1,?)",
+                   ('admin', generate_password_hash('admin'), 'Administrateur', 'admin', '', D.now_iso()))
+        db.commit()
+        print('[init] Base vide initialisee avec le seul compte admin/admin')
     db.close()
-    print('[init] Base initialisee avec des comptes de test : admin/admin, com1/com1, com2/com2, impl1/impl1, dt1/dt1')
 
 
 D.init_schema()

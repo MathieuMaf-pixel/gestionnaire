@@ -5,3 +5,6 @@ data/secret.key
 data/mails/
 __pycache__/
 *.pyc
+data/export.json
+data/*.json
+!data/.gitkeep
