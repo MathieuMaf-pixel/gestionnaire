@@ -293,6 +293,44 @@ def mails_list():
 
 
 # ─── Clients ─────────────────────────────────────────────────────────
+# Champs libres de la fiche client (v0.2). `fruits` est un JSON [{"produit":"pommes","volume_t":1200}].
+CLIENT_TEXTE = ('pays', 'ville', 'contact', 'notes', 'adresse', 'cp', 'dept', 'tel', 'email', 'activite')
+CLIENT_NUM = ('lat', 'lng')
+
+
+def client_out(row):
+    if row is None:
+        return None
+    row['fruits'] = D.jl(row.get('fruits'), [])
+    return row
+
+
+def _fruits_in(v):
+    if v is None:
+        return None
+    if isinstance(v, str):
+        v = D.jl(v, [])
+    out = []
+    for f in (v or []):
+        if not isinstance(f, dict) or not f.get('produit'):
+            continue
+        try:
+            vol = float(re.sub(r'[\s\u00a0\u202f]', '', str(f.get('volume_t', ''))).replace(',', '.')) if f.get('volume_t') not in (None, '') else None
+        except ValueError:
+            vol = None
+        out.append({'produit': str(f['produit']).strip().lower(), 'volume_t': vol})
+    return json.dumps(out)
+
+
+def _num_in(v):
+    if v in (None, ''):
+        return None
+    try:
+        return float(re.sub(r'[\s\u00a0\u202f]', '', str(v)).replace(',', '.'))
+    except ValueError:
+        return None
+
+
 @app.route('/api/clients')
 @require()
 def clients_list():
@@ -304,6 +342,7 @@ def clients_list():
     counts = {r['client_id']: r['n'] for r in D.q(request.db, "SELECT client_id, COUNT(*) n FROM demandes WHERE archive=0 GROUP BY client_id")}
     for r in rows:
         r['nb_demandes'] = counts.get(r['id'], 0)
+        client_out(r)
     return jsonify(rows)
 
 
@@ -316,11 +355,12 @@ def clients_create():
         return jsonify({'error': 'Le nom du client est obligatoire.'}), 400
     cid = D.new_id('cl')
     commercial = request.user['username'] if request.user['role'] == 'com' else (b.get('commercial') or request.user['username'])
-    request.db.execute("INSERT INTO clients VALUES (?,?,?,?,?,?,?,?)",
-                       (cid, nom, (b.get('pays') or '').strip(), (b.get('ville') or '').strip(), commercial,
-                        (b.get('contact') or '').strip(), (b.get('notes') or '').strip(), D.now_iso()))
+    cols = ['id', 'nom', 'commercial', 'created_at'] + list(CLIENT_TEXTE) + list(CLIENT_NUM) + ['fruits']
+    vals = [cid, nom, commercial, D.now_iso()] + [(b.get(f) or '').strip() for f in CLIENT_TEXTE] \
+        + [_num_in(b.get(f)) for f in CLIENT_NUM] + [_fruits_in(b.get('fruits')) or '[]']
+    request.db.execute("INSERT INTO clients (%s) VALUES (%s)" % (', '.join(cols), ', '.join('?' * len(cols))), vals)
     request.db.commit()
-    return jsonify(D.q1(request.db, "SELECT * FROM clients WHERE id=?", (cid,))), 201
+    return jsonify(client_out(D.q1(request.db, "SELECT * FROM clients WHERE id=?", (cid,)))), 201
 
 
 @app.route('/api/clients/<cid>', methods=['PUT'])
@@ -332,13 +372,19 @@ def clients_update(cid):
     if request.user['role'] == 'com' and row['commercial'] != request.user['username']:
         return jsonify({'error': 'Ce client est suivi par un autre commercial.'}), 403
     b = request.get_json(silent=True) or {}
-    request.db.execute("UPDATE clients SET nom=?, pays=?, ville=?, contact=?, notes=? WHERE id=?",
-                       ((b.get('nom') or row['nom']).strip(), (b.get('pays') if b.get('pays') is not None else row['pays']).strip(),
-                        (b.get('ville') if b.get('ville') is not None else row['ville']).strip(),
-                        (b.get('contact') if b.get('contact') is not None else row['contact']).strip(),
-                        (b.get('notes') if b.get('notes') is not None else row['notes']).strip(), cid))
+    sets, vals = ['nom=?'], [(b.get('nom') or row['nom']).strip()]
+    for f in CLIENT_TEXTE:
+        if b.get(f) is not None:
+            sets.append(f + '=?'); vals.append(str(b[f]).strip())
+    for f in CLIENT_NUM:
+        if f in b:
+            sets.append(f + '=?'); vals.append(_num_in(b[f]))
+    if 'fruits' in b:
+        sets.append('fruits=?'); vals.append(_fruits_in(b['fruits']) or '[]')
+    vals.append(cid)
+    request.db.execute("UPDATE clients SET " + ', '.join(sets) + " WHERE id=?", vals)
     request.db.commit()
-    return jsonify(D.q1(request.db, "SELECT * FROM clients WHERE id=?", (cid,)))
+    return jsonify(client_out(D.q1(request.db, "SELECT * FROM clients WHERE id=?", (cid,))))
 
 
 # ─── Demandes ────────────────────────────────────────────────────────
@@ -395,6 +441,7 @@ def demandes_list():
     archive = 1 if request.args.get('archive') == '1' else 0
     sql = """SELECT d.id, d.numero, d.titre, d.statut, d.commercial, d.produits, d.tonnage_horaire, d.retour_souhaite,
                     d.cdc_types, d.implanteur, d.devis, d.archive, d.created_at, d.updated_at, d.envoyee_le, d.validee_le,
+                    d.client_id, (SELECT MIN(complet) FROM cdc x WHERE x.demande_id=d.id) AS cdc_complet,
                     c.nom AS client_nom, c.pays AS client_pays, u.display_name AS commercial_nom, i.display_name AS implanteur_nom,
                     (SELECT COUNT(*) FROM plans p WHERE p.demande_id=d.id) AS nb_plans,
                     (SELECT indice FROM plans p WHERE p.demande_id=d.id ORDER BY cree_le DESC LIMIT 1) AS dernier_indice

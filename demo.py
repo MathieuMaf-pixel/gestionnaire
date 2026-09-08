@@ -37,19 +37,52 @@ USERS = [
     ('dt1',   'dt1',   'Directeur Technique', 'dt',    'dt1@exemple.local'),
 ]
 
-# (nom, pays, ville, commercial, nb de projets visés)
+# (nom, pays, ville, commercial, nb de projets visés) — portefeuille Sud-Ouest de com1 (15 clients), 2 clients pour com2.
+# Noms et volumes FICTIFS ; les villes sont des bassins de production réels, sans lien avec un client réel.
 CLIENTS = [
-    ('CLIENT A (fictif)', 'France',   'Ville A', 'com1', 14),   # ← le client « à arborescence » : projets sur 4 ans
-    ('CLIENT B (fictif)', 'Espagne',  'Ville B', 'com1', 4),
-    ('CLIENT C (fictif)', 'Italie',   'Ville C', 'com1', 4),
-    ('CLIENT D (fictif)', 'France',   'Ville D', 'com1', 3),
-    ('CLIENT E (fictif)', 'Portugal', 'Ville E', 'com1', 3),
-    ('CLIENT F (fictif)', 'Belgique', 'Ville F', 'com1', 2),
-    ('CLIENT G (fictif)', 'Pologne',  'Ville G', 'com1', 2),
-    ('CLIENT H (fictif)', 'France',   'Ville H', 'com2', 4),
-    ('CLIENT I (fictif)', 'Chili',    'Ville I', 'com2', 3),
-    ('CLIENT J (fictif)', 'Maroc',    'Ville J', 'com2', 3),
+    ('CLIENT A (fictif)', 'France', 'Montauban',          'com1', 14),   # ← le client « à arborescence » : projets sur 4 ans
+    ('CLIENT B (fictif)', 'France', 'Agen',               'com1', 5),
+    ('CLIENT C (fictif)', 'France', 'Marmande',           'com1', 4),
+    ('CLIENT D (fictif)', 'France', 'Nérac',              'com1', 3),
+    ('CLIENT E (fictif)', 'France', 'Lectoure',           'com1', 3),
+    ('CLIENT F (fictif)', 'France', 'Fronton',            'com1', 2),
+    ('CLIENT G (fictif)', 'France', 'Cahors',             'com1', 3),
+    ('CLIENT H (fictif)', 'France', 'Castelsarrasin',     'com1', 4),
+    ('CLIENT I (fictif)', 'France', 'Bergerac',           'com1', 3),
+    ('CLIENT J (fictif)', 'France', 'Sarlat-la-Canéda',   'com1', 2),
+    ('CLIENT K (fictif)', 'France', 'Villeneuve-sur-Lot', 'com1', 4),
+    ('CLIENT L (fictif)', 'France', 'Saint-Sever',        'com1', 2),
+    ('CLIENT M (fictif)', 'France', 'Peyrehorade',        'com1', 3),
+    ('CLIENT N (fictif)', 'France', 'Orthez',             'com1', 2),
+    ('CLIENT O (fictif)', 'France', 'Gaillac',            'com1', 1),
+    ('CLIENT P (fictif)', 'France', 'Perpignan',          'com2', 4),
+    ('CLIENT Q (fictif)', 'France', 'Nîmes',              'com2', 3),
 ]
+# Fiche CRM (commercial v2) : code client → (cp, dept, lat, lng, activité, adresse, production [(produit varietes.json, t/an)])
+# Coordonnées = centre approximatif de la commune (2 décimales) ; adresses et volumes fictifs (zones d'activité génériques).
+FICHES = {
+    'A': ('82000', '82', 44.02, 1.35,  'Station fruitière',      "ZA de la Plaine, 12 route de Toulouse",     [('pommes', 12000), ('poires', 1500), ('kiwis', 650)]),
+    'B': ('47000', '47', 44.20, 0.62,  'Coopérative',            "8 avenue du Général de Gaulle",             [('prunes', 6500), ('kiwis', 900)]),
+    'C': ('47200', '47', 44.50, 0.17,  'Expéditeur / grossiste', "ZI du Marmandais, rue des Maraîchers",      [('tomates', 9000), ('melons', 2200)]),
+    'D': ('47600', '47', 44.14, 0.34,  'Producteur-expéditeur',  "Lieu-dit Les Vergers, route de Condom",     [('pommes', 3200), ('kiwis', 1100)]),
+    'E': ('32700', '32', 43.93, 0.62,  'Coopérative',            "3 chemin de la Gare",                       [('melons', 4800), ('pommes', 900)]),
+    'F': ('31620', '31', 43.84, 1.39,  'Producteur-expéditeur',  "Domaine des Coteaux, route de Villaudric",  [('raisin', 1500)]),
+    'G': ('46000', '46', 44.45, 1.44,  'Station fruitière',      "ZA de Regourd, 5 rue de l'Industrie",       [('melons', 3000), ('pommes', 2600)]),
+    'H': ('82100', '82', 44.04, 1.11,  'Station fruitière',      "Route de Moissac, ZI de Fleury",            [('pommes', 7500), ('poires', 2800), ('prunes', 1200)]),
+    'I': ('24100', '24', 44.85, 0.48,  'Coopérative',            "21 avenue de Bordeaux",                     [('pommes', 5400), ('prunes', 700)]),
+    'J': ('24200', '24', 44.89, 1.22,  'Coopérative',            "ZA de Madrazès, 9 rue des Noyers",          [('noix', 2400)]),
+    'K': ('47300', '47', 44.41, 0.70,  'Expéditeur / grossiste', "MIN de Villeneuve, 4 rue du Marché-Gare",   [('prunes', 4100), ('tomates', 1800), ('pommes', 1500)]),
+    'L': ('40500', '40', 43.76, -0.57, 'Producteur-expéditeur',  "Route de Mont-de-Marsan, lieu-dit Péré",    [('kiwis', 1400), ('carottes', 6000)]),
+    'M': ('40300', '40', 43.55, -1.10, 'Coopérative',            "ZA du Pays d'Orthe, 2 rue des Kiwis",       [('kiwis', 5200)]),
+    'N': ('64300', '64', 43.49, -0.77, 'Station fruitière',      "Route de Bayonne, ZA de Soarns",            [('kiwis', 3600), ('pommes', 800)]),
+    'O': ('81600', '81', 43.90, 1.90,  'Producteur-expéditeur',  "Domaine de la Rive, chemin des Vignes",     [('raisin', 900), ('pommes', 400)]),
+    'P': ('66000', '66', 42.70, 2.90, 'Station fruitière', "MIN Saint-Charles, avenue de Rome",        [('peches', 8000), ('abricots', 2500)]),
+    'Q': ('30000', '30', 43.84, 4.36,  'Expéditeur / grossiste', "ZI de Grézan, 14 rue de l'Hostellerie",     [('abricots', 1200), ('peches', 2000), ('melons', 3500)]),
+}
+# produit principal du client → fruit des intitulés de projet (cohérence de la démo)
+FRUIT_PAR_PRODUIT = {'pommes': 'pomme', 'poires': 'poire', 'kiwis': 'kiwi', 'peches': 'pêche', 'agrumes': 'agrumes',
+                     'prunes': 'prune', 'melons': 'melon', 'tomates': 'tomate', 'abricots': 'abricot', 'raisin': 'raisin',
+                     'noix': 'noix', 'carottes': 'carotte'}
 
 TITRES = [
     ('Ligne précalibrage {fruit} {th} T/h', ['precalibrage']),
@@ -65,7 +98,9 @@ TITRES = [
 ]
 FRUITS = ['pomme', 'poire', 'pomme/poire', 'kiwi', 'agrumes', 'pêche']
 VARIETES = {'pomme': 'Gala, Golden, Granny', 'poire': 'Conférence, Williams', 'pomme/poire': 'Gala, Golden, Conférence',
-            'kiwi': 'Hayward', 'agrumes': 'Clémentine, Orange Navel', 'pêche': 'Pêche jaune, Nectarine'}
+            'kiwi': 'Hayward', 'agrumes': 'Clémentine, Orange Navel', 'pêche': 'Pêche jaune, Nectarine',
+            'prune': "Reine-Claude, d'Ente", 'melon': 'Charentais jaune', 'tomate': 'Ronde, Grappe', 'abricot': 'Bergeron, Orangered',
+            'raisin': 'Chasselas, Italia', 'noix': 'Franquette', 'carotte': 'Nantaise'}
 FICHIERS = ['{cli}_precal_ind{ind}.dwg', '{cli}_emballage_ind{ind}.dwg', '{cli}_implantation_ind{ind}.dwg']
 REFUS = ['Manque la zone de stockage des palox vides.', 'Passage chariot trop étroit devant le palettiseur.',
          'Prévoir l\'accès maintenance côté calibreuse.', 'Sens de circulation à inverser pour la reprise des palettes.']
@@ -97,9 +132,13 @@ def generer(db, verbose=True):
     clients = []
     for k, (nom, pays, ville, com, nb) in enumerate(CLIENTS):
         cid = 'cl_demo_%02d' % (k + 1)
-        db.execute("INSERT INTO clients VALUES (?,?,?,?,?,?,?,?)",
-                   (cid, nom, pays, ville, com, 'Contact fictif %s' % nom[7], '', iso(datetime(2023, 1, 10 + k, 9, 0))))
-        clients.append({'id': cid, 'nom': nom, 'pays': pays, 'com': com, 'nb': nb, 'code': nom[7]})
+        cp, dept, lat, lng, activite, adresse, prod = FICHES.get(nom[7], ('', '', None, None, '', '', []))
+        db.execute("INSERT INTO clients (id, nom, pays, ville, commercial, contact, notes, created_at, adresse, cp, dept, lat, lng, activite, tel, email, fruits) "
+                   "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                   (cid, nom, pays, ville, com, 'Contact fictif %s' % nom[7], '', iso(datetime(2023, 1, 10 + k, 9, 0)),
+                    adresse, cp, dept, lat, lng, activite, '05 00 00 00 %02d' % (k + 1), 'contact.%s@exemple.local' % nom[7].lower(),
+                    json.dumps([{'produit': p, 'volume_t': v} for p, v in prod])))
+        clients.append({'id': cid, 'nom': nom, 'pays': pays, 'com': com, 'nb': nb, 'code': nom[7], 'prod': prod[0][0] if prod else None})
     # — demandes : on tire les dates puis on numérote dans l'ordre chronologique —
     brouillons = []
     for c in clients:
@@ -108,7 +147,7 @@ def generer(db, verbose=True):
         if c['code'] == 'A':
             annees = [2023, 2023, 2023, 2024, 2024, 2024, 2024, 2025, 2025, 2025, 2026, 2026, 2026, 2026][:n]
         else:
-            annees = [rnd.choice([2024, 2025, 2025, 2026, 2026, 2026]) for _ in range(n)]
+            annees = [rnd.choice([2023, 2024, 2025, 2025, 2026, 2026, 2026]) for _ in range(n)]
         for a in annees:
             if a == 2026:
                 d = datetime(2026, rnd.randint(1, 9), rnd.randint(1, 28), rnd.randint(8, 17), rnd.randint(0, 59))
@@ -121,7 +160,7 @@ def generer(db, verbose=True):
     nb_par_statut = {}
     for numero, (d, c) in enumerate(brouillons, start=1):
         titre_t, types = rnd.choice(TITRES)
-        fruit = rnd.choice(FRUITS)
+        fruit = FRUIT_PAR_PRODUIT.get(c.get('prod')) or rnd.choice(FRUITS)
         th = rnd.choice([6, 8, 10, 12, 15, 20, 25, 30])
         titre = titre_t.format(fruit=fruit, th=th, nl=rnd.choice([2, 3, 4]))
         age_j = (AUJOURDHUI - d).days

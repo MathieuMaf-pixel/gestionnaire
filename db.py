@@ -35,7 +35,17 @@ CREATE TABLE IF NOT EXISTS clients (
     commercial  TEXT NOT NULL,                      -- username du commercial
     contact     TEXT NOT NULL DEFAULT '',
     notes       TEXT NOT NULL DEFAULT '',
-    created_at  TEXT NOT NULL
+    created_at  TEXT NOT NULL,
+    -- v0.2 : fiche client CRM (carte, contacts, production)
+    adresse     TEXT NOT NULL DEFAULT '',
+    cp          TEXT NOT NULL DEFAULT '',
+    dept        TEXT NOT NULL DEFAULT '',            -- code département (FR) ou vide
+    lat         REAL,                                -- coordonnées WGS84, NULL = non géolocalisé
+    lng         REAL,
+    tel         TEXT NOT NULL DEFAULT '',
+    email       TEXT NOT NULL DEFAULT '',
+    activite    TEXT NOT NULL DEFAULT '',            -- station, coopérative, producteur, expéditeur…
+    fruits      TEXT NOT NULL DEFAULT '[]'           -- JSON [{"produit":"pommes","volume_t":1200}] — clés = produits de varietes.json
 );
 
 CREATE TABLE IF NOT EXISTS demandes (
@@ -133,9 +143,22 @@ def get_db():
     return conn
 
 
+# Colonnes ajoutées après la v0.1 : créées à la volée sur une base existante (ALTER TABLE est additif et sans risque)
+MIGRATIONS = {
+    'clients': [('adresse', "TEXT NOT NULL DEFAULT ''"), ('cp', "TEXT NOT NULL DEFAULT ''"), ('dept', "TEXT NOT NULL DEFAULT ''"),
+                ('lat', 'REAL'), ('lng', 'REAL'), ('tel', "TEXT NOT NULL DEFAULT ''"), ('email', "TEXT NOT NULL DEFAULT ''"),
+                ('activite', "TEXT NOT NULL DEFAULT ''"), ('fruits', "TEXT NOT NULL DEFAULT '[]'")],
+}
+
+
 def init_schema():
     db = get_db()
     db.executescript(SCHEMA)
+    for table, cols in MIGRATIONS.items():
+        existantes = {r['name'] for r in db.execute('PRAGMA table_info(%s)' % table).fetchall()}
+        for nom, decl in cols:
+            if nom not in existantes:
+                db.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table, nom, decl))
     db.commit()
     db.close()
 
